@@ -1,0 +1,350 @@
+
+  //  song time duration ---------
+  //   currentSong.addEventListener("timeupdate", () => {
+  //     console.log(currentSong.currentTime, currentSong.duration);
+
+  //     document.querySelector(".play-time").innerHTML = `${formatTime(
+  //       currentSong.currentTime
+  //     )} / ${formatTime(currentSong.duration)}`;
+
+  //     seekDot.style.left = (currentSong.currentTime/currentSong.duration) * 100 + "%"
+  //   });
+  //   //   seekh bar event ------------
+  //       let seekBar = document.querySelector('.play-time-box').getElementsByClassName('seek-bar')
+  //       let seekDot = document.querySelector(".play-time-box").getElementsByClassName("seek-dot")
+  //       seekBar.addEventListener('click', (e)=>{
+
+  //           let percent = (e.offsetX/e.target.getBoundingClientRect().width) * 100
+  //           seekDot.style.left = percent + "%"
+  //           console.log((e.offsetX/e.target.getBoundingClientRect().width) * 100);
+
+  //           currentSong.currentTime = ((currentSong.duration) * percent) / 100
+
+  //       })
+
+
+
+
+
+  console.log("chal rha h ");
+
+let currentSong = new Audio();
+let playb = document.querySelector("#playb");
+
+function formatTime(seconds) {
+  let minutes = Math.floor(seconds / 60);
+  let remainingSeconds = Math.floor(seconds % 60);
+  if (minutes < 10) minutes = "0" + minutes;
+  if (remainingSeconds < 10) remainingSeconds = "0" + remainingSeconds;
+  return minutes + ":" + remainingSeconds;
+}
+
+async function getSongs() {
+  let a = await fetch("http://127.0.0.1:5500/songs/");
+  let response = await a.text();
+  // console.log(response);
+
+  let div = document.createElement("div");
+  div.innerHTML = response;
+  // console.log(div.innerHTML);
+
+  let aSong = div.getElementsByTagName("a");
+  // console.log(aSong);
+
+  let songs = [];
+  for (let i = 0; i < aSong.length; i++) {
+    const element = aSong[i];
+    if (element.href.endsWith(".mp3")) {
+      let songName = decodeURIComponent(element.href.split("/songs/")[1]); // Human-readable name
+      songs.push({
+        fileName: element.href.split("/songs/")[1],
+        songName: songName,
+      }); // Save both
+      // songs.push(element.href.split("/songs/")[1])
+    }
+  }
+  return songs;
+}
+
+const playMusic = (track, pause = false) => {
+  let audio = "/songs/" + track;
+  currentSong.src = audio;
+  if (!pause) {
+    currentSong.play();
+    playb.innerHTML = '<i class="bi bi-pause-fill"></i>';
+  }
+  // currentSong.play()
+
+  let songInfo = document.querySelector(".song-info");
+  //  songInfo.innerHTML =  track.replaceAll("%20", "")
+  songInfo.innerHTML = `<div class="music-icon">
+                                <i class="bi bi-music-note-beamed"></i>
+
+                            </div>
+                            <div class="songbox">
+                                <div class="song-name">
+                                  ${decodeURIComponent(track)}
+                                </div>  
+                                <div class="singer">
+                                    Atif Aslam
+                                </div>
+                            </div>`;
+  // Before playing, set initial time and reset duration
+  let playTimeElements = document.querySelectorAll(".play-time");
+  playTimeElements[0].innerHTML = "00:00"; // Left side - current time
+  playTimeElements[1].innerHTML = "00:00"; // Right side - total duration
+
+  //   let playTime = document.querySelector(".play-time");
+  //   playTime.innerHTML =  "00:00 "
+
+  //   let playTimeBox = document.querySelector(".play-time-box").getElementsByClassName('play-time');
+  //   playTimeBox.innerHTML = `<span>00:00</span>   <div class="seek-bar">
+  //                             <div class="seek-dot">
+
+  //                             </div>
+  //                         </div>
+  //                          <span>00:00</span>`;
+};
+
+async function main() {
+  let songs = await getSongs();
+  playMusic(songs[0].fileName, true);
+  // console.log(songs);
+
+  let songURL = document
+    .querySelector(".playlist")
+    .getElementsByTagName("ul")[0];
+  for (const song of songs) {
+    songURL.innerHTML =
+      songURL.innerHTML +
+      ` <li>
+                            <div class="music-icon">
+                                <i class="bi bi-music-note-beamed"></i>
+
+                            </div>
+                            <div class="songbox">
+                                <div class="song-name">
+                                    ${song.songName}
+                                </div>  
+                                <div class="singer">
+                                    Atif Aslam
+                                </div>
+                            </div>
+                            <div class="playnow">
+                                
+                                <a class="playbtn">
+                                    <i class="bi bi-play-fill"></i>
+                                </a>
+
+                            </div>
+                        </li>`;
+    // console.log(songURL.innerHTML);
+  }
+
+  Array.from(
+    document.querySelector(".playlist").getElementsByTagName("li")
+  ).forEach((e, index) => {
+    e.addEventListener("click", () => {
+      let selectSong = songs[index].fileName;
+      // console.log(selectSong);
+      playMusic(selectSong);
+    });
+  });
+
+  //  song play & pause event ---------
+  playb.addEventListener("click", () => {
+    if (currentSong.paused) {
+      currentSong.play();
+      playb.innerHTML = '<i class="bi bi-pause-fill"></i>';
+    } else {
+      currentSong.pause();
+      playb.innerHTML = '<i class="bi bi-play-fill"></i>';
+    }
+  });
+
+
+  currentSong.addEventListener("timeupdate", () => {
+    let playTimeElements = document.querySelectorAll(".play-time");
+    playTimeElements[0].innerHTML = `${formatTime(currentSong.currentTime)}`;
+    playTimeElements[1].innerHTML = `${formatTime(currentSong.duration)}`;
+
+    let seekDot = document.querySelector(".seek-dot");
+    if (currentSong.duration) {
+      seekDot.style.left =
+        (currentSong.currentTime / currentSong.duration) * 100 + "%";
+    }
+  });
+
+  // Seek bar click event
+  let seekBar = document.querySelector(".seek-bar");
+  seekBar.addEventListener("click", (e) => {
+    let percent = e.offsetX / seekBar.offsetWidth;
+    currentSong.currentTime = percent * currentSong.duration;
+
+    let seekDot = document.querySelector(".seek-dot");
+    seekDot.style.left = percent * 100 + "%";
+  });
+
+  //   playlist toggle event ----------
+  let playListToggle = document.querySelector(".playlist-toggle");
+  playListToggle.addEventListener("click", () => {
+    document.querySelector(".left-box").style.left = "0";
+  });
+
+  let closeBTn = document.querySelector(".closebtn");
+  closeBTn.addEventListener("click", () => {
+    document.querySelector(".left-box").style.left = "-100%";
+  });
+
+//    voice seek bar event-----------
+
+// let voiceBar = document.querySelector('.voice-s-bar')
+// voiceBar.addEventListener("click", (e)=>{
+//     console.log(e.offsetX);
+//     let percent = e.offsetX / voiceBar.offsetWidth;
+
+
+//     let voiceDot = document.querySelector(".voice-dot");
+//     voiceDot.style.left = percent * 50 + "";
+    
+// })
+
+  // Voice seek bar event-----------
+//   let voiceBar = document.querySelector('.voice-s-bar');
+//   let voiceDot = document.querySelector(".voice-dot");
+
+//   voiceBar.addEventListener("click", (e) => {
+//     let percent = e.offsetX / voiceBar.offsetWidth;
+//     voiceDot.style.left = percent * 100 + "%";
+
+//     currentSong.volume = percent; // This will control the volume of the `currentSong`
+//     console.log(`Volume: ${currentSong.volume * 100}%`); // Log volume percentage
+//   });
+
+//   // Optionally, handle dragging functionality for smoother control
+//   voiceBar.addEventListener("mousemove", (e) => {
+//     if (e.buttons === 1) { // Check if the left mouse button is held down
+//       let percent = e.offsetX / voiceBar.offsetWidth;
+//       voiceDot.style.left = percent * 100 + "%";
+//       currentSong.volume = percent;
+//     }
+//   });
+
+// }
+
+let voiceBar = document.querySelector('.voice-s-bar');
+let voiceDot = document.querySelector(".voice-dot");
+
+voiceBar.addEventListener("click", (e) => {
+    let percent = e.offsetX / voiceBar.offsetWidth;
+
+    // Limit percent between 0 and 1 so the dot stays within the bar
+    if (percent < 0) percent = 0;
+    if (percent > 1) percent = 1;
+
+    // Adjust for the width of the dot (to center the dot correctly)
+    let dotOffset = (voiceDot.offsetWidth / 2) / voiceBar.offsetWidth * 100;
+    voiceDot.style.left = (percent * 100 - dotOffset) + "%";
+
+    currentSong.volume = percent; // This will control the volume of the `currentSong`
+    console.log(`Volume: ${currentSong.volume * 100}%`);
+});
+
+voiceBar.addEventListener("mousemove", (e) => {
+    if (e.buttons === 1) { // Check if the left mouse button is held down
+        let percent = e.offsetX / voiceBar.offsetWidth;
+
+        // Limit percent between 0 and 1
+        if (percent < 0) percent = 0;
+        if (percent > 1) percent = 1;
+
+        // Adjust for the width of the dot (to center the dot correctly)
+        let dotOffset = (voiceDot.offsetWidth / 2) / voiceBar.offsetWidth * 100;
+        voiceDot.style.left = (percent * 100 - dotOffset) + "%";
+
+        currentSong.volume = percent;
+    }
+});
+}
+
+main();
+
+
+
+
+
+{
+  /* <span class="play-n-text">
+                                    Play Now
+                                </span> */
+}
+
+// console.log('chal rha h ');
+
+// let currentSong = new Audio();
+
+// async function getSongs() {
+//     let a = await fetch("http://127.0.0.1:5500/songs/");
+//     let response = await a.text();
+
+//     let div = document.createElement('div');
+//     div.innerHTML = response;
+
+//     let aSong = div.getElementsByTagName('a');
+
+//     let songs = [];
+//     for (let i = 0; i < aSong.length; i++) {
+//         const element = aSong[i];
+//         if (element.href.endsWith(".mp3")) {
+//             let songName = decodeURIComponent(element.href.split("/songs/")[1]); // Human-readable name
+//             songs.push({ fileName: element.href.split("/songs/")[1], songName: songName }); // Save both
+//         }
+//     }
+//     return songs;
+// }
+
+// const playMusic = (track) => {
+//     let filePath = "/songs/" + track;  // Correct encoded format for playing
+//     console.log('Playing: ', filePath);
+//     currentSong.src = filePath;
+//     currentSong.play().catch(error => console.error("Error in playing the song: ", error));
+// }
+
+// async function main() {
+//     let songs = await getSongs();
+
+//     let songURL = document.querySelector('.playlist').getElementsByTagName('ul')[0];
+//     for (const song of songs) {
+//         songURL.innerHTML += `
+//         <li>
+//             <div class="music-icon">
+//                 <i class="bi bi-music-note-beamed"></i>
+//             </div>
+//             <div class="songbox">
+//                 <div class="song-name">
+//                     ${song.songName}  <!-- Human-readable song name -->
+//                 </div>
+//                 <div class="singer">
+//                     Atif Aslam
+//                 </div>
+//             </div>
+//             <div class="playnow">
+//                 <span class="play-n-text">Play Now</span>
+//                 <a class="playbtn">
+//                     <i class="bi bi-play-fill"></i>
+//                 </a>
+//             </div>
+//         </li>`;
+//     }
+
+//     // Event listener for each song
+//     Array.from(document.querySelector('.playlist').getElementsByTagName('li')).forEach((e, index) => {
+//         e.addEventListener("click", () => {
+//             let selectedSong = songs[index].fileName;  // Use the fileName for correct URL
+//             console.log('Song Selected:', selectedSong);
+//             playMusic(selectedSong);  // Play using the correct encoded fileName
+//         });
+//     });
+// }
+
+// main();
